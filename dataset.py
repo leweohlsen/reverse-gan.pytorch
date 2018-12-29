@@ -6,15 +6,22 @@ import torchvision.transforms as transforms
 
 def get_dataloader(opt):
     if opt.dataset in ['imagenet', 'folder', 'lfw']:
-        # folder dataset
+        # list transformation operations
+        transform_ops = [
+            transforms.Scale(opt.imageScaleSize),
+            transforms.CenterCrop(opt.imageSize),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+        ]
+
+        # force convert to grayscale when number of channels is 1
+        if opt.nc == 1:
+            transform_ops.insert(0, transforms.Grayscale())
+
+        # load dataset folder with transformations
         dataset = dset.ImageFolder(root=opt.dataroot,
-                                   transform=transforms.Compose([
-                                       transforms.Scale(opt.imageScaleSize),
-                                       transforms.CenterCrop(opt.imageSize),
-                                       transforms.ToTensor(),
-                                       transforms.Normalize((0.5, 0.5, 0.5),
-                                                            (0.5, 0.5, 0.5)),
-                                   ]))
+                                   transform=transforms.Compose(transform_ops)
+                                   )
     elif opt.dataset == 'lsun':
         dataset = dset.LSUN(db_path=opt.dataroot, classes=['bedroom_train'],
                             transform=transforms.Compose([
