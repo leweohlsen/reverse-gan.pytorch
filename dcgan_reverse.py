@@ -10,9 +10,10 @@ import torch.utils.data
 import torchvision.utils as vutils
 from torch.autograd import Variable
 from dcgan import NetG
+from dataset import get_dataloader
 
 
-def reverse_z(netG, g_z, z, opt, clip='disabled'):
+def reverse_z(netG, g_z, opt, clip='disabled'):
     """
     Estimate z_approx given G and G(z).
 
@@ -59,10 +60,10 @@ def reverse_z(netG, g_z, z, opt, clip='disabled'):
     for i in range(opt.niter):
         g_z_approx = netG(z_approx)
         mse_g_z = mse_loss(g_z_approx, g_z)
-        mse_z = mse_loss_(z_approx, z)
+        # TODO mse_z = mse_loss_(z_approx, z)
         if i % 100 == 0:
-            print("[Iter {}] mse_g_z: {}, MSE_z: {}"
-                  .format(i, mse_g_z.item(), mse_z.item()))
+            print("[Iter {}] mse_g_z: {}" # TODO , MSE_z: {}
+                  .format(i, mse_g_z.item()))
 
         # bprop
         optimizer_approx.zero_grad()
@@ -90,28 +91,43 @@ def reverse_gan(opt):
     for param in netG.parameters():
         param.requires_grad = False
 
-    # init z
-    if opt.z_distribution == 'uniform':
-        z = torch.FloatTensor(1, opt.nz, 1, 1).uniform_(-1, 1)
-    elif opt.z_distribution == 'normal':
-        z = torch.FloatTensor(1, opt.nz, 1, 1).normal_(0, 1)
+    # generate random G(z) to recover
+    if not opt.dataroot:
+        # init z
+        if opt.z_distribution == 'uniform':
+            z = torch.FloatTensor(1, opt.nz, 1, 1).uniform_(-1, 1)
+        elif opt.z_distribution == 'normal':
+            z = torch.FloatTensor(1, opt.nz, 1, 1).normal_(0, 1)
+        else:
+            raise ValueError()
+        z = Variable(z)
+        z.data.resize_(1, opt.nz, 1, 1)
+
+        # generate g_z
+        g_z = netG(z)
+
+        print(z.cpu().data.numpy().squeeze())
+
+    # take image from dataset to recover z for   
     else:
-        raise ValueError()
-    z = Variable(z)
-    z.data.resize_(1, opt.nz, 1, 1)
+        # dataloader
+        dataloader = get_dataloader(opt)
+        
+        for i, batch in enumerate(dataloader):
+            g_z, _ = batch
+            break
+
+    # save original
+    vutils.save_image(g_z.data, 'g_z.png', normalize=True)
 
     # transfer to gpu
     if opt.cuda:
         netG.cuda()
-        z = z.cuda()
-
-    # generate g_z
-    g_z = netG(z)
-    vutils.save_image(g_z.data, 'g_z.png', normalize=True)
-    print(z.cpu().data.numpy().squeeze())
+        g_z = g_z.cuda()
+        # TODO z = z.cuda()
 
     # recover z_approx from standard
-    z_approx = reverse_z(netG, g_z, z, opt, clip=opt.clip)
+    z_approx = reverse_z(netG, g_z, opt, clip=opt.clip)
     print(z_approx.cpu().data.numpy().squeeze())
 
 
@@ -119,6 +135,17 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--clip', default='stochastic',
                         help='disabled|standard|stochastic')
+    parser.add_argument('--dataset', required=True,
+                        help='cifar10 | lsun | imagenet | folder | lfw')
+    parser.add_argument('--dataroot', help='path to dataset')
+    parser.add_argument('--workers', type=int,
+                        help='number of data loading workers', default=20)
+    parser.add_argument('--batch_size', type=int, default=1,
+                        help='input batch size')
+    parser.add_argument('--imageScaleSize', type=int, default=64,
+                        help='scale the sorter of the height / width of the image')
+    parser.add_argument('--imageSize', type=int, default=64,
+                        help='the height / width of the input image to network')
     parser.add_argument('--z_distribution', default='uniform',
                         help='uniform | normal')
     parser.add_argument('--nz', type=int, default=100,
