@@ -12,6 +12,7 @@ import torchvision.utils as vutils
 import time
 from torch.autograd import Variable
 from dataset import get_dataloader
+from tensorboardX import SummaryWriter
 
 
 # custom weights initialization called on netG and netD
@@ -119,6 +120,9 @@ def train(opt):
 
     cudnn.benchmark = True  # turn on the cudnn autotuner
 
+    # tensorboard summary
+    writer = SummaryWriter('logs')
+
     # dataloader
     dataloader = get_dataloader(opt)
 
@@ -215,6 +219,21 @@ def train(opt):
             errG.backward()
             D_G_z2 = output.data.mean()
             optimizerG.step()
+
+            # calculate step for tensorboard logging
+            step = epoch * len(dataloader) + i
+
+            ############################
+            # Logging
+            ###########################
+
+            # log discriminator loss
+            writer.add_scalar('errD_fake', errD_fake, step)
+            writer.add_scalar('errD_real', errD_real, step)
+            writer.add_scalar('errD', errD, step)
+
+            # log generator loss
+            writer.add_scalar('errG', errG, step)
 
             # print costs
             print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f '
