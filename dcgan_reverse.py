@@ -62,7 +62,7 @@ def reverse_z(netG, g_z, z, opt, clip='disabled'):
         mse_z = mse_loss_(z_approx, z)
         if i % 100 == 0:
             print("[Iter {}] mse_g_z: {}, MSE_z: {}"
-                  .format(i, mse_g_z.data[0], mse_z.data[0]))
+                  .format(i, mse_g_z.item(), mse_z.item()))
 
         # bprop
         optimizer_approx.zero_grad()
