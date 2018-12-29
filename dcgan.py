@@ -220,7 +220,7 @@ def train(opt):
             print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f '
                   'D(G(z)): %.4f / %.4f'
                   % (epoch, opt.niter, i, len(dataloader),
-                     errD.data[0], errG.data[0], D_x, D_G_z1, D_G_z2))
+                     errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
 
             # save initial real samples
             if epoch == 0 and i == 0:
