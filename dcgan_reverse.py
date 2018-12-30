@@ -124,13 +124,13 @@ def reverse_gan(opt):
             z_approx, g_z_approx = reverse_z(netG, g_z, opt, clip=opt.clip)
 
             # save z_approx
-            torch.save(z_approx.cpu().data.numpy().squeeze(), 'recover/latents/z_approx-%4d.pkl' % i)
+            torch.save(z_approx.cpu().data.numpy().squeeze(), 'recover/latents/%04d-z_approx.pkl' % i)
 
             # save original
-            vutils.save_image(g_z.data, 'recover/g_z-%4d.png' % i, normalize=True)
+            vutils.save_image(g_z.data, 'recover/%04d-g_z.png' % i, normalize=True)
 
             # save g(z_approx) image
-            vutils.save_image(g_z_approx.data, 'recover/g_z_approx-%4d.png' % i, normalize=True)
+            vutils.save_image(g_z_approx.data, 'recover/%04d-g_z_approx.png' % i, normalize=True)
 
 
 if __name__ == '__main__':
