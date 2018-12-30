@@ -140,6 +140,8 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', required=True,
                         help='cifar10 | lsun | imagenet | folder | lfw')
     parser.add_argument('--dataroot', help='path to dataset')
+    parser.add_argument('--shuffle', action='store_true',
+                        help='shuffle dataset')
     parser.add_argument('--workers', type=int,
                         help='number of data loading workers', default=20)
     parser.add_argument('--batch_size', type=int, default=1,
