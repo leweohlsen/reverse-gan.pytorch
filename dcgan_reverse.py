@@ -78,10 +78,7 @@ def reverse_z(netG, g_z, opt, clip='disabled'):
             z_approx.data[z_approx.data > 1] = random.uniform(-1, 1)
             z_approx.data[z_approx.data < -1] = random.uniform(-1, 1)
 
-    # save g(z_approx) image
-    vutils.save_image(g_z_approx.data, 'g_z_approx.png', normalize=True)
-
-    return z_approx
+    return z_approx, g_z_approx
 
 
 def reverse_gan(opt):
@@ -113,22 +110,27 @@ def reverse_gan(opt):
         # dataloader
         dataloader = get_dataloader(opt)
         
+        # recover all samples from the dataset
         for i, batch in enumerate(dataloader):
+            print("Recovering %d/%d" % (i, len(dataloader)))
             g_z, _ = batch
-            break
 
-    # save original
-    vutils.save_image(g_z.data, 'g_z.png', normalize=True)
+            # transfer to gpu
+            if opt.cuda:
+                netG.cuda()
+                g_z = g_z.cuda()
 
-    # transfer to gpu
-    if opt.cuda:
-        netG.cuda()
-        g_z = g_z.cuda()
-        # TODO z = z.cuda()
+            # recover z_approx from standard
+            z_approx, g_z_approx = reverse_z(netG, g_z, opt, clip=opt.clip)
 
-    # recover z_approx from standard
-    z_approx = reverse_z(netG, g_z, opt, clip=opt.clip)
-    print(z_approx.cpu().data.numpy().squeeze())
+            # save z_approx
+            torch.save(z_approx.cpu().data.numpy().squeeze(), 'recover/latents/z_approx-%4d.pkl' % i)
+
+            # save original
+            vutils.save_image(g_z.data, 'recover/g_z-%4d.png' % i, normalize=True)
+
+            # save g(z_approx) image
+            vutils.save_image(g_z_approx.data, 'recover/g_z_approx-%4d.png' % i, normalize=True)
 
 
 if __name__ == '__main__':
